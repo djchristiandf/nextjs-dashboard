@@ -11,6 +11,7 @@ export default async function CustomersTable({
 }: {
   customers: FormattedCustomersTable[];
 }) {
+  //console.log("Consumidores: " + customers); // Adicione esta linha para verificar os dados dos clientes
   return (
     <div className="w-full">
       <h1 className={`${lusitana.className} mb-8 text-xl md:text-2xl`}>
