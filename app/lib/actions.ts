@@ -19,9 +19,25 @@ const FormSchema = z.object({
   date: z.string(),
 });
 
+// Definição do esquema para a entidade Customer
+const CustomerSchema = z.object({
+  name: z.string({
+    invalid_type_error: 'Please enter a valid name.',
+  }),
+  email: z.string({
+    invalid_type_error: 'Please enter a valid email address.',
+  }),
+  image_url: z.string({
+    invalid_type_error: 'Please enter a valid image URL.',
+  }),
+});
+
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
 // Use Zod to update the expected types
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
+
+// Utilize o esquema para criar um esquema de criação de cliente
+const CreateCustomer = CustomerSchema;
 
 // This is temporary until @types/react-dom is updated
 export type State = {
@@ -110,6 +126,53 @@ export async function deleteInvoice(id: string) {
     return { message: 'Deleted Invoice.' };
   } catch (error) {
     return { message: 'Database Error: Failed to Delete Invoice.' };
+  }
+}
+
+// Definição do tipo de estado para mensagens e erros
+export type StateCustomer = {
+  errors?: {
+    name?: string[];
+    email?: string[];
+    image_url?: string[];
+  };
+  message?: string | null;
+};
+// Função para criar um cliente
+export async function createCustomer(prevState: StateCustomer, formData: FormData) {
+  // Valide o formulário usando Zod
+  const validatedFields = CreateCustomer.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    image_url: formData.get('image_url'), // Adicionando validação para image_url
+  });
+
+  // Verifique se a validação do formulário falha
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Create Customer.',
+    };
+  }
+
+  // Prepare os dados para inserção no banco de dados
+  const { name, email, image_url } = validatedFields.data;
+
+  try {
+    await sql`
+      INSERT INTO customers (name, email, image_url)
+      VALUES (${name}, ${email}, ${image_url})
+    `;
+    
+    // Se a inserção for bem-sucedida, redirecione para a página de clientes
+    revalidatePath('/dashboard/customers');
+    redirect('/dashboard/customers');
+    
+    return { message: 'Customer created successfully.' };
+  } catch (error) {
+    return {
+      message: 'Database Error: Failed to Create Customer.',
+    };
   }
 }
 

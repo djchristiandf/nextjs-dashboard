@@ -2,149 +2,120 @@
 
 import { CustomerField } from '@/app/lib/definitions';
 import Link from 'next/link';
-import {
-  CheckIcon,
-  ClockIcon,
-  CurrencyDollarIcon,
-  UserCircleIcon,
-} from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
-import { createInvoice } from '@/app/lib/actions';
+import { createCustomer } from '@/app/lib/actions';
 import { useFormState } from 'react-dom';
-
-export default function Form({ customers }: { customers: CustomerField[] }) {
+import { useState } from 'react';
+import Image from 'next/image';
+export default function Form() {
   const initialState = { message: null, errors: {} };
-  const [state, dispatch] = useFormState(createInvoice, initialState);
+  const [state, dispatch] = useFormState(createCustomer, initialState);
+  const [imagePath, setImagePath] = useState('');
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+
+    // Verifique se há arquivos selecionados
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    // Verifique se há mais de um arquivo selecionado
+    if (files.length > 1) {
+      alert('Please select only one file.');
+      return;
+    }
+
+    const file = files[0];
+
+    // Verifique se o arquivo é do tipo imagem
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    // Verifique se o arquivo é do tipo PNG
+    if (!file.type.includes('png')) {
+      alert('Please select a PNG image file.');
+      return;
+    }
+
+    // Lógica para processar e enviar o arquivo de imagem para a pasta /public/customers
+    // Crie um objeto FormData para enviar o arquivo
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Enviar o arquivo para a rota de upload
+    fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    })
+      .then(response => response.json())
+      .then(data => {
+        const { imagePath } = data;
+        setImagePath(imagePath);
+      })
+      .catch(error => {
+        console.error('Error uploading file:', error);
+        alert('An error occurred while uploading the file.');
+      });
+        
+  };
   return (
     <form action={dispatch}>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
-        {/* Customer Name */}
+        {/* Name */}
         <div className="mb-4">
-          <label htmlFor="customer" className="mb-2 block text-sm font-medium">
-            Choose customer
+          <label htmlFor="name" className="block text-sm font-medium">
+            Name
           </label>
-          <div className="relative">
-            <select
-              id="customer"
-              name="customerId"
-              className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-              defaultValue=""
-              aria-describedby="customer-error"
-            >
-              <option value="" disabled>
-                Select a customer
-              </option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </select>
-            <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
-          </div>
-          <div id="customer-error" aria-live="polite" aria-atomic="true">
-            {state.errors?.customerId &&
-              state.errors.customerId.map((error: string) => (
-                <p className="mt-2 text-sm text-red-500" key={error}>
-                  {error}
-                </p>
-              ))}
-          </div>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            className="block w-full rounded-md border border-gray-200 py-2 px-3 text-sm"
+          />
         </div>
 
-        {/* Invoice Amount */}
+        {/* Email */}
         <div className="mb-4">
-          <label htmlFor="amount" className="mb-2 block text-sm font-medium">
-            Choose an amount
+          <label htmlFor="email" className="block text-sm font-medium">
+            Email
           </label>
-          <div className="relative mt-2 rounded-md">
-            <div className="relative">
-              <input
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                placeholder="Enter USD amount"
-                aria-describedby="customer-error"
-                className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-              />
-              <CurrencyDollarIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
-            </div>
-            <div id="customer-error" aria-live="polite" aria-atomic="true">
-              {state.errors?.amount &&
-                state.errors.amount.map((error: string) => (
-                  <p className="mt-2 text-sm text-red-500" key={error}>
-                    {error}
-                  </p>
-                ))}
-            </div>
-          </div>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            className="block w-full rounded-md border border-gray-200 py-2 px-3 text-sm"
+          />
         </div>
 
-        {/* Invoice Status */}
-        <fieldset>
-          <legend className="mb-2 block text-sm font-medium">
-            Set the invoice status
-          </legend>
-          <div className="rounded-md border border-gray-200 bg-white px-[14px] py-3">
-            <div className="flex gap-4">
-              <div className="flex items-center">
-                <input
-                  id="pending"
-                  name="status"
-                  type="radio"
-                  value="pending"
-                  aria-describedby="customer-error"
-                  className="h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2"
-                />
-                <label
-                  htmlFor="pending"
-                  className="ml-2 flex cursor-pointer items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600"
-                >
-                  Pending <ClockIcon className="h-4 w-4" />
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  id="paid"
-                  name="status"
-                  type="radio"
-                  value="paid"
-                  aria-describedby="customer-error"
-                  className="h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2"
-                />
-                <label
-                  htmlFor="paid"
-                  className="ml-2 flex cursor-pointer items-center gap-1.5 rounded-full bg-green-500 px-3 py-1.5 text-xs font-medium text-white"
-                >
-                  Paid <CheckIcon className="h-4 w-4" />
-                </label>
-              </div>
-            </div>
-          </div>
-          <div id="customer-error" aria-live="polite" aria-atomic="true">
-            {state.errors?.status &&
-              state.errors.status.map((error: string) => (
-                <p className="mt-2 text-sm text-red-500" key={error}>
-                  {error}
-                </p>
-              ))}
-            {state.message && (
-              <div className="mt-2 text-sm text-red-500">
-                {state.message}
-              </div>
-            )}
-          </div>
-        </fieldset>
+        {/* Image Upload */}
+        <div className="mb-4">
+          <label htmlFor="image" className="block text-sm font-medium">
+            Image
+          </label>
+          <input
+            id="image"
+            name="image"
+            type="file"
+            accept=".jpg, .jpeg, .png"
+            onChange={handleFileChange}
+            className="block w-full rounded-md border border-gray-200 py-2 px-3 text-sm"
+          />
+           {imagePath && <Image src={imagePath} alt="Uploaded Image" />}
+        </div>
+         {/* Hidden input to store the image path for form submission */}
+         <input type="hidden" name="image_url" value={imagePath} />
       </div>
       <div className="mt-6 flex justify-end gap-4">
         <Link
-          href="/dashboard/invoices"
+          href="/dashboard/customers"
           className="flex h-10 items-center rounded-lg bg-gray-100 px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
         >
           Cancel
         </Link>
-        <Button type="submit">Create Invoice</Button>
+        <Button type="submit">Create Customer</Button>
       </div>
     </form>
   );
