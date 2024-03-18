@@ -19,6 +19,12 @@ const FormSchema = z.object({
   date: z.string(),
 });
 
+const CustomerImageValidator = z.string().refine((data) => {
+  return data.includes("/customers/") && data.endsWith(".png");
+}, {
+  message: 'The image URL must contain "/customers/" and end with ".png".',
+});
+
 // Definição do esquema para a entidade Customer
 const CustomerSchema = z.object({
   name: z.string({
@@ -27,9 +33,7 @@ const CustomerSchema = z.object({
   email: z.string({
     invalid_type_error: 'Please enter a valid email address.',
   }),
-  image_url: z.string({
-    invalid_type_error: 'Please enter a valid image URL.',
-  }),
+  image_url: CustomerImageValidator,
 });
 
 const CreateInvoice = FormSchema.omit({ id: true, date: true });

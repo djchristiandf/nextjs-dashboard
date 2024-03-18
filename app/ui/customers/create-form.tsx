@@ -7,7 +7,60 @@ import { createCustomer } from '@/app/lib/actions';
 import { useFormState } from 'react-dom';
 import { useState } from 'react';
 import Image from 'next/image';
+
+type FormErrors = {
+  name?: string;
+  email?: string;
+  image?: string;
+};
+
 export default function Form() {
+  const validationRules = {
+    name: {
+      required: true,
+      minLength: 5,
+    },
+    email: {
+      required: true,
+      email: true,
+    },
+    image: {
+      required: true,
+    },
+  };
+  const validateFormData = (formData: CustomerField) => {
+    const errors: FormErrors = {};
+    for (const field in formData) {
+      switch (field) {
+        case 'name':
+          if (validationRules.name.required && !formData[field]) {
+            errors[field] = 'Required';
+          }
+          if (formData[field] && validationRules.name.minLength && formData[field].length < validationRules.name.minLength) {
+            errors[field] = `Must be at least ${validationRules.name.minLength} characters`;
+          }
+          break;
+        case 'email':
+          if (validationRules.email.required && !formData[field]) {
+            errors[field] = 'Required';
+          }
+          if (formData[field] && validationRules.email.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData[field])) {
+            errors[field] = 'Invalid email format';
+          }
+          break;
+        case 'image':
+          if (validationRules.image.required && !formData[field]) {
+            errors[field] = 'Required';
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    return errors;
+  };
+
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const initialState = { message: null, errors: {} };
   const [state, dispatch] = useFormState(createCustomer, initialState);
   const [imagePath, setImagePath] = useState('');
@@ -45,22 +98,17 @@ export default function Form() {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Enviar o arquivo para a rota de upload
-    fetch('/api/upload', {
+    const response = await fetch('/api/upload', {
       method: 'POST',
       body: formData,
-    })
-      .then(response => response.json())
-      .then(data => {
-        const { imagePath } = data;
-        setImagePath(imagePath);
-      })
-      .catch(error => {
-        console.error('Error uploading file:', error);
-        alert('An error occurred while uploading the file.');
-      });
+    });
+
+    const data = await response.json();
+
+    setImagePath(data.imagePath);
         
   };
+  
   return (
     <form action={dispatch}>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
@@ -74,8 +122,17 @@ export default function Form() {
             name="name"
             type="text"
             className="block w-full rounded-md border border-gray-200 py-2 px-3 text-sm"
+            defaultValue=""
+            aria-describedby="customer-error"
           />
         </div>
+        <div id="customer-error" aria-live="polite" aria-atomic="true">
+        {state.errors?.name && (
+          state.errors.name.map((error: string) => (
+            <p className="mt-2 text-sm text-red-500" key={error}>
+              {error}
+            </p>
+          ))}</div>
 
         {/* Email */}
         <div className="mb-4">
@@ -105,7 +162,7 @@ export default function Form() {
           />
            {imagePath && <Image src={imagePath} alt="Uploaded Image" />}
         </div>
-         {/* Hidden input to store the image path for form submission */}
+         {/* Hidden input to store the image path for form submission */} 
          <input type="hidden" name="image_url" value={imagePath} />
       </div>
       <div className="mt-6 flex justify-end gap-4">
